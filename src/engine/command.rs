@@ -1,6 +1,6 @@
 use rust_decimal::prelude::*;
 use uuid::Uuid;
-use crate::order::{Side, OrderType};
+use crate::engine::order::{Side, OrderType};
 use serde::{Serialize, Deserialize};
 
 /// Marker trait to group all commands together
