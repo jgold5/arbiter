@@ -15,6 +15,10 @@ impl OrderSubmitted {
     pub fn new(order: Order) -> OrderSubmitted {
         OrderSubmitted { order }
     }
+
+    pub fn get_order(&self) -> &Order {
+        &self.order
+    }
 }
 
 impl Event for OrderSubmitted {}
@@ -33,17 +37,37 @@ impl OrderFilled {
     pub fn new(order_id: Uuid, matched_order_id: Uuid, quantity: Decimal, price: Decimal) -> OrderFilled {
         OrderFilled { order_id, matched_order_id, quantity, price }
     }
+
+    pub fn get_order_id(&self) -> Uuid {
+        self.order_id
+    }
+
+    pub fn get_matched_order_id(&self) -> Uuid {
+        self.matched_order_id
+    }
+
+    pub fn get_quantity(&self) -> Decimal {
+        self.quantity
+    }
+
+    pub fn get_price(&self) -> Decimal {
+        self.price
+    }
 }
 
 impl Event for OrderFilled {}
 
 /// An event to indicate the cancellation of an order
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-pub struct OrderCancelled {uuid: Uuid}
+pub struct OrderCancelled {order_id: Uuid}
 
 impl OrderCancelled {
-    pub fn new(uuid: Uuid) -> OrderCancelled {
-        OrderCancelled { uuid }
+    pub fn new(order_id: Uuid) -> OrderCancelled {
+        OrderCancelled { order_id }
+    }
+
+    pub fn get_order_id(&self) -> Uuid {
+        self.order_id
     }
 }
 
