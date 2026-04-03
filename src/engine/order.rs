@@ -1,7 +1,7 @@
 use serde::{Serialize, Deserialize};
 use rust_decimal::prelude::*;
 use uuid::Uuid;
-use crate::util::clock::HlcTimestamp;
+use crate::{engine::instrument::InstrumentId, util::clock::HlcTimestamp};
 
 /// Represents which side of the order book an order belongs to.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -28,10 +28,11 @@ pub struct Order {
     timestamp: HlcTimestamp,
     quantity: Decimal,
     uuid: Uuid,
+    instrument_id: InstrumentId,
 }
 
 impl Order {
-    pub fn new(side: Side, order_type: OrderType, price: Option<Decimal>, quantity: Decimal, timestamp: HlcTimestamp, uuid: Uuid) -> Order {
-        Order {side, order_type, price, quantity, timestamp, uuid}
+    pub fn new(instrument_id: InstrumentId, side: Side, order_type: OrderType, price: Option<Decimal>, quantity: Decimal, timestamp: HlcTimestamp, uuid: Uuid) -> Order {
+        Order {instrument_id, side, order_type, price, quantity, timestamp, uuid}
     }
 }
