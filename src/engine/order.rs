@@ -36,6 +36,10 @@ impl Order {
         Order {instrument_id, side, order_type, price, quantity, timestamp, order_id}
     }
 
+    pub fn get_instrument_id(&self) -> InstrumentId {
+        self.instrument_id.clone()
+    }
+
     pub fn get_side(&self) -> Side {
         self.side
     }
@@ -54,5 +58,9 @@ impl Order {
 
     pub fn get_order_id(&self) -> Uuid {
         self.order_id
+    }
+
+    pub fn get_timestamp(&self) -> HlcTimestamp {
+        self.timestamp
     }
 }
