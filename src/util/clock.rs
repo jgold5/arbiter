@@ -70,6 +70,9 @@ impl TestClock {
     pub fn set_time(&self, val: u64) {
        self.test_time.set(val); 
     }
+     pub fn new(val: u64) -> TestClock {
+        TestClock { test_time: Cell::new(val) }
+     }
 }
 
 #[cfg(test)]
@@ -78,7 +81,7 @@ mod tests {
 
     #[test]
     fn test_timestamp_advances_with_wall_clock() {
-        let test_clock = TestClock {test_time: Cell::new(0)};
+        let test_clock = TestClock::new(0);
         let mut hcl = HybridLogicalClock::new(test_clock);
         hcl.clock().set_time(1);
         let now = hcl.tick();
@@ -91,7 +94,7 @@ mod tests {
 
     #[test]
     fn test_counter_increments_with_concurrent_wall_time_events() {
-        let test_clock = TestClock {test_time: Cell::new(0)};
+        let test_clock = TestClock::new(0);
         let mut hcl = HybridLogicalClock::new(test_clock);
         let first = hcl.tick();
         let next = hcl.tick();

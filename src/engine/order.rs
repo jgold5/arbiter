@@ -27,12 +27,40 @@ pub struct Order {
     /// Timestamp using a Hybrid Logical Clock
     timestamp: HlcTimestamp,
     quantity: Decimal,
-    uuid: Uuid,
+    order_id: Uuid,
     instrument_id: InstrumentId,
 }
 
 impl Order {
-    pub fn new(instrument_id: InstrumentId, side: Side, order_type: OrderType, price: Option<Decimal>, quantity: Decimal, timestamp: HlcTimestamp, uuid: Uuid) -> Order {
-        Order {instrument_id, side, order_type, price, quantity, timestamp, uuid}
+    pub fn new(instrument_id: InstrumentId, side: Side, order_type: OrderType, price: Option<Decimal>, quantity: Decimal, timestamp: HlcTimestamp, order_id: Uuid) -> Order {
+        Order {instrument_id, side, order_type, price, quantity, timestamp, order_id}
+    }
+
+    pub fn get_instrument_id(&self) -> InstrumentId {
+        self.instrument_id.clone()
+    }
+
+    pub fn get_side(&self) -> Side {
+        self.side
+    }
+    
+    pub fn get_order_type(&self) -> OrderType {
+        self.order_type
+    }
+
+    pub fn get_price(&self) -> Option<Decimal> {
+        self.price
+    }
+
+    pub fn get_quantity(&self) -> Decimal {
+        self.quantity
+    }
+
+    pub fn get_order_id(&self) -> Uuid {
+        self.order_id
+    }
+
+    pub fn get_timestamp(&self) -> HlcTimestamp {
+        self.timestamp
     }
 }
