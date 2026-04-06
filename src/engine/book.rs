@@ -3,7 +3,11 @@ use std::{cmp::Reverse, collections::{BTreeMap, HashMap, VecDeque}};
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
-use crate::engine::{event::{EventPayload}, order::{Order, OrderType, Side}};
+use crate::engine::{event::EventPayload, order::{self, Order, OrderType, Side}};
+
+type BidLadder = BTreeMap<Reverse<Decimal>, VecDeque<Order>>;
+type AskLadder = BTreeMap<Decimal, VecDeque<Order>>;
+type OrderIndex = HashMap<Uuid, (Side, Decimal)>;
 
 /// The live state of all resting orders for a single instrument.
 ///  
@@ -15,9 +19,9 @@ use crate::engine::{event::{EventPayload}, order::{Order, OrderType, Side}};
 /// variants emitted by the matching engine.
 #[derive(Debug, PartialEq)]
 pub struct OrderBook {
-    bids: BTreeMap<Reverse<Decimal>, VecDeque<Order>>,
-    asks: BTreeMap<Decimal, VecDeque<Order>>,
-    order_index: HashMap<Uuid, (Side, Decimal)>
+    bids: BidLadder,
+    asks: AskLadder,
+    order_index: OrderIndex 
 
 }
 
@@ -46,6 +50,18 @@ impl OrderBook {
         let asks = BTreeMap::new();
         let order_index = HashMap::new();
         OrderBook { bids, asks, order_index }
+    }
+
+    pub fn get_bids(&self) -> &BidLadder {
+        &self.bids
+    }
+
+    pub fn get_asks(&self) -> &AskLadder {
+        &self.asks
+    }
+
+    pub fn order_exists(&self, order_id: Uuid) -> bool {
+        self.order_index.contains_key(&order_id)
     }
 
     /// Applies an event to the order book, updating its state accordingly.
@@ -165,6 +181,105 @@ impl OrderBook {
                 self.order_index.remove(&order_id);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{engine::{event::{OrderCancelled, OrderFilled, OrderSubmitted}, instrument::InstrumentId}, util::clock::{HybridLogicalClock, TestClock}};
+    use super::*;
+
+    fn make_order(side: Side, order_type: OrderType, price: Option<Decimal>, quantity: Decimal) -> Order {
+        let test_clock = TestClock::new(0);
+        let mut hcl = HybridLogicalClock::new(test_clock);
+        Order::new(
+            InstrumentId::new("AAPL".to_string()).unwrap(),
+            side,
+            order_type,
+            price,
+            quantity,
+            hcl.tick(),
+            Uuid::new_v4())
+    }
+
+    #[test]
+    fn test_submit_limit_order() {
+        let mut order_book = OrderBook::new();
+        let order = make_order(Side::Ask, OrderType::Limit, Some(Decimal::new(100, 0)), Decimal::new(100, 0));
+        let id = order.get_order_id();
+        let res = order_book.apply(&EventPayload::OrderSubmitted(OrderSubmitted::new(order)));
+        assert!(res.is_ok());
+        assert!(order_book.asks.contains_key(&Decimal::new(100, 0)));
+        assert_eq!(order_book.get_asks().len(), 1);
+        assert_eq!(order_book.get_bids().len(), 0);
+        assert_eq!(order_book.order_exists(id), true);
+    }
+ 
+    #[test]
+    fn test_cancel_limit_order() {
+        let mut order_book = OrderBook::new();
+        let order = make_order(Side::Ask, OrderType::Limit, Some(Decimal::new(100, 0)), Decimal::new(100, 0));
+        let id = order.get_order_id();
+        let _ = order_book.apply(&EventPayload::OrderSubmitted(OrderSubmitted::new(order)));
+        let res = order_book.apply(&&EventPayload::OrderCancelled(OrderCancelled::new(id)));
+        assert!(res.is_ok());
+        assert!(!order_book.asks.contains_key(&Decimal::new(100, 0)));
+        assert_eq!(order_book.get_asks().len(), 0);
+        assert_eq!(order_book.get_bids().len(), 0);
+        assert_eq!(order_book.order_exists(id), false);
+    }
+
+    #[test]
+    fn test_fill_limit_order() {
+        let mut order_book = OrderBook::new();
+        let order_1 = make_order(Side::Ask, OrderType::Limit, Some(Decimal::new(100, 0)), Decimal::new(100, 0));
+        let order_2 = make_order(Side::Bid, OrderType::Limit, Some(Decimal::new(100, 0)), Decimal::new(50, 0));
+        let qty = order_2.get_quantity();
+        let price = order_2.get_price().unwrap();
+        let id_1 = order_1.get_order_id();
+        let id_2 = order_2.get_order_id();
+        let _ = order_book.apply(&EventPayload::OrderSubmitted(OrderSubmitted::new(order_1)));
+        let _ = order_book.apply(&EventPayload::OrderSubmitted(OrderSubmitted::new(order_2)));
+        let res = order_book.apply(&EventPayload::OrderFilled(OrderFilled::new(id_1, id_2, qty, price)));
+        assert!(res.is_ok());
+        assert!(order_book.asks.contains_key(&Decimal::new(100, 0)));
+        assert_eq!(order_book.get_asks().len(), 1);
+        assert_eq!(order_book.get_bids().len(), 0);
+        assert_eq!(order_book.order_exists(id_1), true);
+        assert_eq!(order_book.order_exists(id_2), false);
+        let resting_order = order_book.get_asks()
+        .get(&Decimal::new(100, 0))
+        .unwrap()
+        .front()
+        .unwrap();
+        assert_eq!(resting_order.get_quantity(), Decimal::new(50, 0));
+    }
+
+    #[test]
+    fn test_submit_market_order() {
+        let mut order_book = OrderBook::new();
+        let order = make_order(Side::Ask, OrderType::Market, Some(Decimal::new(100, 0)), Decimal::new(100, 0));
+        let res = order_book.apply(&EventPayload::OrderSubmitted(OrderSubmitted::new(order)));
+        assert_eq!(res, Err(OrderBookError::InvalidOrderType));
+    }
+
+    #[test]
+    fn test_cancel_nonexistent_order() {
+        let mut order_book = OrderBook::new();
+        let order = make_order(Side::Ask, OrderType::Limit, Some(Decimal::new(100, 0)), Decimal::new(100, 0));
+        let id = order.get_order_id();
+        let res = order_book.apply(&EventPayload::OrderCancelled(OrderCancelled::new(id)));
+        assert_eq!(res, Err(OrderBookError::OrderNotFound));
+    }
+
+    #[test]
+    fn test_submit_duplicate_order() {
+        let mut order_book = OrderBook::new();
+        let order = make_order(Side::Ask, OrderType::Limit, Some(Decimal::new(100, 0)), Decimal::new(100, 0));
+        let dup = order.clone();
+        let _ = order_book.apply(&EventPayload::OrderSubmitted(OrderSubmitted::new(order)));
+        let res = order_book.apply(&EventPayload::OrderSubmitted(OrderSubmitted::new(dup)));
+        assert_eq!(res, Err(OrderBookError::DuplicateOrder));
     }
 
 }
