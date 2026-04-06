@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::cell::Cell;
 
 /// Represents an HLC to generate timestamps that are both monotonic and follow real time.
@@ -11,11 +11,15 @@ pub struct HybridLogicalClock<C: WallClock> {
     clock: C,
 }
 
-impl<C:WallClock> HybridLogicalClock<C> {
+impl<C: WallClock> HybridLogicalClock<C> {
     /// Initializes the HLC.
     pub fn new(clock: C) -> HybridLogicalClock<C> {
         let start = clock.now_nanos();
-        HybridLogicalClock { wall: start, counter: 0, clock}
+        HybridLogicalClock {
+            wall: start,
+            counter: 0,
+            clock,
+        }
     }
 
     /// Creates a new timestamp.
@@ -29,7 +33,10 @@ impl<C:WallClock> HybridLogicalClock<C> {
         } else {
             self.counter += 1;
         }
-        HlcTimestamp { wall: self.wall, counter: self.counter }
+        HlcTimestamp {
+            wall: self.wall,
+            counter: self.counter,
+        }
     }
 
     pub fn clock(&self) -> &C {
@@ -48,7 +55,9 @@ pub struct HlcTimestamp {
 }
 
 pub struct SystemWallClock;
-pub struct TestClock {test_time: Cell<u64>}
+pub struct TestClock {
+    test_time: Cell<u64>,
+}
 
 pub trait WallClock {
     fn now_nanos(&self) -> u64;
@@ -56,7 +65,10 @@ pub trait WallClock {
 
 impl WallClock for SystemWallClock {
     fn now_nanos(&self) -> u64 {
-        std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos() as u64
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos() as u64
     }
 }
 
@@ -68,11 +80,13 @@ impl WallClock for TestClock {
 
 impl TestClock {
     pub fn set_time(&self, val: u64) {
-       self.test_time.set(val); 
+        self.test_time.set(val);
     }
-     pub fn new(val: u64) -> TestClock {
-        TestClock { test_time: Cell::new(val) }
-     }
+    pub fn new(val: u64) -> TestClock {
+        TestClock {
+            test_time: Cell::new(val),
+        }
+    }
 }
 
 #[cfg(test)]

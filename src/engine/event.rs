@@ -9,7 +9,9 @@ pub trait Event {}
 
 /// Any event to represent any order submitted on the exchange
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-pub struct OrderSubmitted {order: Order}
+pub struct OrderSubmitted {
+    order: Order,
+}
 
 impl OrderSubmitted {
     pub fn new(order: Order) -> OrderSubmitted {
@@ -30,12 +32,22 @@ pub struct OrderFilled {
     order_id: Uuid,
     matched_order_id: Uuid,
     quantity: Decimal,
-    price: Decimal, 
+    price: Decimal,
 }
 
 impl OrderFilled {
-    pub fn new(order_id: Uuid, matched_order_id: Uuid, quantity: Decimal, price: Decimal) -> OrderFilled {
-        OrderFilled { order_id, matched_order_id, quantity, price }
+    pub fn new(
+        order_id: Uuid,
+        matched_order_id: Uuid,
+        quantity: Decimal,
+        price: Decimal,
+    ) -> OrderFilled {
+        OrderFilled {
+            order_id,
+            matched_order_id,
+            quantity,
+            price,
+        }
     }
 
     pub fn get_order_id(&self) -> Uuid {
@@ -59,7 +71,9 @@ impl Event for OrderFilled {}
 
 /// An event to indicate the cancellation of an order
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-pub struct OrderCancelled {order_id: Uuid}
+pub struct OrderCancelled {
+    order_id: Uuid,
+}
 
 impl OrderCancelled {
     pub fn new(order_id: Uuid) -> OrderCancelled {
@@ -73,13 +87,12 @@ impl OrderCancelled {
 
 impl Event for OrderCancelled {}
 
-
 /// An enum representing all types of events
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub enum EventPayload {
     OrderSubmitted(OrderSubmitted),
     OrderFilled(OrderFilled),
-    OrderCancelled(OrderCancelled)
+    OrderCancelled(OrderCancelled),
 }
 
 /// An envelope containing  the type and data of an event
@@ -87,12 +100,15 @@ pub enum EventPayload {
 pub struct EventEnvelope {
     id: Uuid,
     timestamp: HlcTimestamp,
-    payload: EventPayload
+    payload: EventPayload,
 }
 
 impl EventEnvelope {
-
     pub fn new(id: Uuid, timestamp: HlcTimestamp, payload: EventPayload) -> EventEnvelope {
-        EventEnvelope {id, timestamp, payload}
+        EventEnvelope {
+            id,
+            timestamp,
+            payload,
+        }
     }
 }

@@ -1,20 +1,20 @@
-use serde::{Serialize, Deserialize};
-use rust_decimal::prelude::*;
-use uuid::Uuid;
 use crate::{engine::instrument::InstrumentId, util::clock::HlcTimestamp};
+use rust_decimal::prelude::*;
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 /// Represents which side of the order book an order belongs to.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum Side {
     Bid,
-    Ask
+    Ask,
 }
 
 /// Represents the type of order that a given order belongs to.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum OrderType {
     Limit,
-    Market 
+    Market,
 }
 
 /// The struct representation of an order
@@ -32,8 +32,24 @@ pub struct Order {
 }
 
 impl Order {
-    pub fn new(instrument_id: InstrumentId, side: Side, order_type: OrderType, price: Option<Decimal>, quantity: Decimal, timestamp: HlcTimestamp, order_id: Uuid) -> Order {
-        Order {instrument_id, side, order_type, price, quantity, timestamp, order_id}
+    pub fn new(
+        instrument_id: InstrumentId,
+        side: Side,
+        order_type: OrderType,
+        price: Option<Decimal>,
+        quantity: Decimal,
+        timestamp: HlcTimestamp,
+        order_id: Uuid,
+    ) -> Order {
+        Order {
+            instrument_id,
+            side,
+            order_type,
+            price,
+            quantity,
+            timestamp,
+            order_id,
+        }
     }
 
     pub fn get_instrument_id(&self) -> InstrumentId {
@@ -43,7 +59,7 @@ impl Order {
     pub fn get_side(&self) -> Side {
         self.side
     }
-    
+
     pub fn get_order_type(&self) -> OrderType {
         self.order_type
     }
